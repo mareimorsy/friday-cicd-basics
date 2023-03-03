@@ -28,11 +28,34 @@ jobs:
             - inventory.txt
           
 
+  server-configuration:
+    docker:
+      - image: python:3.7-alpine3.11
+
+    steps:
+      - checkout
+      - add_ssh_keys:
+          fingerprints: ["32:d4:38:40:fa:0d:14:fc:36:16:0d:9a:dd:74:d7:38"]
+      - run:
+          name: Install dependencies
+          command: |
+            apk add gzip openssh-client ansible
+      - attach_workspace:
+          # Must be absolute path or relative path from working_directory
+          at: .
+      - run:
+          name: Reading Inventory file
+          command: |
+            cat inventory.txt
+      - run:
+          name: Configure Infrastructure
+          command: |
+            ansible-playbook -i inventory.txt main.yml
+
 workflows:
   welcome:
     jobs:
       - provsion-infrastructure
-      # - server-configuration
-      # - testing
-      #     # requires: 
-      #     #   - provsion-infrastructure
+      - server-configuration:
+          requires: 
+            - provsion-infrastructure
