@@ -55,7 +55,7 @@ jobs:
 workflows:
   welcome:
     jobs:
-      - provsion-infrastructure
-      - server-configuration:
-          requires: 
-            - provsion-infrastructure
+      # - provsion-infrastructure
+      - server-configuration
+          # requires: 
+          #   - provsion-infrastructure
