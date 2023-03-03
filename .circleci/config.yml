@@ -51,10 +51,24 @@ jobs:
           command: |
             ansible-playbook -i inventory.txt main.yml
 
+  test:
+    docker:
+      - image: node:alpine
+
+    steps:
+      - checkout
+      - run:
+          name: run unit test
+          command: |
+            cd backend
+            npm install
+            npm run test
+
 workflows:
   welcome:
     jobs:
       # - provsion-infrastructure
-      - server-configuration
+      # - server-configuration
+      - test
           # requires: 
           #   - provsion-infrastructure
