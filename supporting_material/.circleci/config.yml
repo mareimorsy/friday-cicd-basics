@@ -1,0 +1,83 @@
+version: 2.1
+
+jobs:
+
+  provsion-infrastructure:
+    docker:
+      - image: amazon/aws-cli
+
+    steps:
+      - checkout
+      - run:
+          name: Configure server
+          command: |
+            aws cloudformation deploy --template-file ec2.yml --stack-name web --region us-east-1
+      - run:
+          name: Configure server
+          command: |
+            yum install -y tar gzip
+            aws ec2 describe-instances --region us-east-1 --query 'Reservations[*].Instances[*].PublicIpAddress' --output text >> inventory.txt
+
+      - persist_to_workspace:
+          # Must be an absolute path, or relative path from working_directory. This is a directory on the container which is
+          # taken to be the root directory of the workspace.
+          root: .
+          # Must be relative path from root
+          paths:
+            - inventory.txt
+
+
+  server-configuration:
+    docker:
+      - image: python:3.7-alpine3.11
+
+    steps:
+      - checkout
+      - add_ssh_keys:
+          fingerprints: ["3a:d3:c7:02:68:9d:89:6e:30:3f:70:af:3c:0d:b9:e4"]
+      - run:
+          name: Install dependencies
+          command: |
+            apk add gzip openssh-client ansible
+            pip3 install awscli
+      # - attach_workspace:
+      #     # Must be absolute path or relative path from working_directory
+      #     at: .
+      - run:
+          name: Reading Inventory file
+          command: |
+            cat inventory.txt
+      - run:
+          name: Configure Infrastructure
+          command: |
+            aws ec2 describe-instances --region us-east-1 --query 'Reservations[*].Instances[*].PublicIpAddress' --output text >> inventory.txt
+            ansible-playbook -i inventory.txt main.yml
+      # - run:
+      #     name: Install dependencies
+      #     command: |
+      #       apk add --update openssh-client ansible 
+# 
+            # aws ec2 describe-instances --region us-east-1 --query 'Reservations[*].Instances[*].PublicIpAddress' --output text >> inventory.txt
+            # ansible-playbook -i inventory.txt main.yml
+  testing:
+    docker:
+      - image: node:alpine
+
+    steps:
+      - checkout
+      - run:
+          name: Test unit test
+          command: |
+            cd backend
+            npm i
+            npm run test
+          
+
+workflows:
+  welcome:
+    jobs:
+      # - provsion-infrastructure
+      # - server-configuration
+      - testing
+          # requires: 
+          #   - provsion-infrastructure
